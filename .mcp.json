@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "falkordb": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@falkordb/mcpserver@latest"],
+      "env": {
+        "FALKORDB_HOST": "${FALKORDB_HOST}",
+        "FALKORDB_PORT": "${FALKORDB_PORT}",
+        "FALKORDB_USERNAME": "${FALKORDB_USERNAME}",
+        "FALKORDB_PASSWORD": "${FALKORDB_PASSWORD}",
+        "FALKORDB_DEFAULT_READONLY": "true"
+      }
+    }
+  }
+}
