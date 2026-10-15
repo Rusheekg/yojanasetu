@@ -9,8 +9,9 @@ FalkorDB is the source of truth for all eligibility logic.
 ## Hard rules
 - Eligibility is decided ONLY by Cypher queries in graph/queries.py.
   The LLM never invents schemes, criteria or documents.
-- Never generate or modify anything in data/ – it holds only human-entered,
-  human-verified scheme data.
+- Scheme data in data/*.csv may be drafted by AI from cited official sources,
+  but a human reviews it before it is committed. Every scheme must have a
+  source_url. Never invent rules that the source does not state.
 - Synthetic citizens only. No real names, Aadhaar or phone numbers.
   AI tools may generate fake citizens, but only in fixtures/.
 - Every scheme answer must include its source_url.
@@ -21,7 +22,7 @@ FalkorDB is the source of truth for all eligibility logic.
 - Plan before coding: show the plan and wait for approval on bigger changes.
 
 ## Structure
-data/      CSV files (human-verified scheme data only)
+data/      CSV files (scheme data from cited sources, human-reviewed)
 fixtures/  synthetic demo citizens (fake data, AI-generated allowed)
 graph/     loader + all Cypher queries (eligibility, sessions, memory)
 docs/      design notes (graph_model.md)

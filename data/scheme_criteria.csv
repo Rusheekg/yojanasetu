@@ -1,1 +1,26 @@
 scheme_id,criterion,value,note
+pm_kisan,for_occupation,farmer,"Landholding farmer families with cultivable land in their own name. Family = husband, wife and minor children. Land acquired after 01-02-2019 may be held for verification"
+pm_kisan,excludes_status,institutional_landholder,
+pm_kisan,excludes_status,constitutional_post_holder,"Current or former ministers, MPs, MLAs, mayors and district panchayat chairpersons (any family member)"
+pm_kisan,excludes_status,govt_employee,"Serving or retired govt, PSU or local body employees. MTS, Class IV and Group D are NOT excluded"
+pm_kisan,excludes_status,govt_pensioner_10k,"Pension of ₹10,000 or more per month (except MTS, Class IV and Group D)"
+pm_kisan,excludes_status,income_tax_payer,Paid income tax in the last assessment year
+pm_kisan,excludes_status,registered_professional,"Doctors, engineers, lawyers, CAs and architects"
+pm_kmy,for_occupation,farmer,Small and marginal farmers
+pm_kmy,min_age,18,Age at enrolment
+pm_kmy,max_age,40,Age at enrolment
+pm_kmy,max_land_acres,4.94,Cultivable land up to 2 hectares (4.94 acres)
+pm_kmy,excludes_status,covered_by_other_pension,
+pm_kmy,excludes_status,institutional_landholder,
+pm_kmy,excludes_status,constitutional_post_holder,
+pm_kmy,excludes_status,govt_employee,"MTS, Class IV and Group D are NOT excluded"
+pm_kmy,excludes_status,income_tax_payer,
+pm_kmy,excludes_status,registered_professional,
+rythu_bharosa,for_occupation,farmer,"Only cultivable land registered in Bhu Bharati (Jan 2025 guidelines). Forest Rights Act (podu) cultivators are also eligible. Non-agricultural land (real estate, mining, industrial) is excluded. The district page also lists age 18-59; not applied because the state guidelines do not mention it"
+rythu_bharosa,available_in,telangana,
+rythu_bima,for_occupation,farmer,Must hold a Pattadar Passbook or RoFR patta. Voluntary enrolment
+rythu_bima,available_in,telangana,
+rythu_bima,min_age,18,
+rythu_bima,max_age,59,
+ignoaps,min_age,60,
+ignoaps,for_status,bpl,"All people aged 60+ in a BPL household are eligible, not just one per family"

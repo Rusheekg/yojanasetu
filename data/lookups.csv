@@ -1,1 +1,16 @@
 type,id,name,name_te,website
+occupation,farmer,Farmer,,
+state,telangana,Telangana,,
+status,institutional_landholder,Institutional landholder,,
+status,constitutional_post_holder,Holder of a constitutional post (current or former),,
+status,govt_employee,Serving or retired government employee,,
+status,govt_pensioner_10k,"Pensioner with monthly pension of ₹10,000 or more",,
+status,income_tax_payer,Income tax payer,,
+status,registered_professional,Registered professional (doctor/engineer/lawyer/CA/architect),,
+status,covered_by_other_pension,"Member of NPS, ESIC, EPFO, PM-SYM or PM-LVM",,
+status,bpl,Below poverty line (BPL) household,,
+office,aadhaar_centre,Aadhaar Enrolment Centre,,https://uidai.gov.in/
+office,bank_branch,Bank branch,,
+office,tahsildar_office,Tahsildar (Revenue) Office,,
+office,forest_rights_committee,District Level Committee under the Forest Rights Act,,
+office,civil_supplies_office,Civil Supplies Office (apply via MeeSeva),,

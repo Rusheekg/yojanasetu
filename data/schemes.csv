@@ -1,1 +1,6 @@
 scheme_id,name,name_te,level,benefit,benefit_amount_inr,source_url,last_verified
+pm_kisan,Pradhan Mantri Kisan Samman Nidhi (PM-KISAN),,central,"₹6,000 per year in three instalments of ₹2,000 paid directly to the bank account",6000,https://pmkisan.gov.in/,2026-10-15
+pm_kmy,Pradhan Mantri Kisan Maan-Dhan Yojana (PM-KMY),,central,"Assured pension of ₹3,000 per month from age 60. The farmer pays ₹55 to ₹200 per month and the government pays an equal amount",36000,https://pmkisan.gov.in/Documents/PM-KMY%20-%20Operational%20Guidelines.pdf,2026-10-15
+rythu_bharosa,Rythu Bharosa,,state,"₹12,000 per acre per year (₹6,000 per crop season for kharif and rabi) as crop investment support for cultivable land, paid by direct bank transfer",12000,https://wanaparthy.telangana.gov.in/scheme/rythu-bharosa-scheme/,2026-10-15
+rythu_bima,Rythu Bima,,state,"₹5 lakh life insurance paid to the nominee if the farmer dies; the government pays the premium",500000,https://myscheme.gov.in/schemes/rythu-bima,2026-10-15
+ignoaps,Indira Gandhi National Old Age Pension Scheme (IGNOAPS),,central,"₹200 per month (age 60–79) or ₹500 per month (age 80+) from the Centre; states add a top-up",2400,https://www.myscheme.gov.in/schemes/nsap-ignoaps,2026-10-15
