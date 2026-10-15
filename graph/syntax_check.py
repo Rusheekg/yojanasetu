@@ -128,6 +128,26 @@ CHECKS = [
         lambda rows: rows == [[[{"k": 1}]]],
     ),
     (
+        # EXPLAIN_BODY's income check picks one of two maps with an inner CASE.
+        "CASE nested inside CASE returning a map",
+        "MATCH (c:Citizen {citizen_id: 'c1'}) "
+        "RETURN CASE WHEN c.age < 60 "
+        "THEN CASE WHEN $basis = 'individual' "
+        "     THEN {check: 'ask_individual_income', basis: 'individual'} "
+        "     ELSE {check: 'max_income', gap: 60 - c.age, basis: 'household'} END END",
+        {"basis": "household"},
+        lambda rows: rows == [[{"check": "max_income", "gap": 20, "basis": "household"}]],
+    ),
+    (
+        # The BUCKET step reads known_checks[0].kind and returns known_checks[0].
+        "Reading a key from a list item (known_checks[0].kind)",
+        "WITH [{kind: 'numeric', gap: 5}, {kind: 'categorical'}] AS known_checks "
+        "RETURN known_checks[0].kind, "
+        "CASE WHEN known_checks[0].kind = 'numeric' THEN known_checks[0] END",
+        {},
+        lambda rows: rows == [["numeric", {"kind": "numeric", "gap": 5}]],
+    ),
+    (
         "Variable-length path over two types",
         "MATCH (:Scheme {scheme_id: 's_farm'})-[:NEEDS_DOC|SATISFIED_BY*1..8]->(d) "
         "RETURN DISTINCT d.doc_id ORDER BY d.doc_id",

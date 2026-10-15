@@ -41,10 +41,12 @@ kalyana_lakshmi,for_category,sc,
 kalyana_lakshmi,for_category,st,
 kalyana_lakshmi,for_category,bc,
 kalyana_lakshmi,for_category,ebc,
+kalyana_lakshmi,for_status,bride_to_be,
 shaadi_mubarak,for_gender,female,Unmarried bride; marriage on or after 02-10-2014; once in a lifetime
 shaadi_mubarak,available_in,telangana,
 shaadi_mubarak,min_age,18,Bride's age at marriage
 shaadi_mubarak,max_income,200000,Parents' combined annual income
 shaadi_mubarak,for_category,minority,
+shaadi_mubarak,for_status,bride_to_be,
 mahalakshmi,for_gender,female,Women and girls in TGSRTC buses (ordinary and express services)
 mahalakshmi,available_in,telangana,

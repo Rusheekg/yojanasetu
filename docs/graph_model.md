@@ -15,9 +15,11 @@ All Cypher below is a draft and has not been run against FalkorDB yet.
 | D6 | No districts. State is the smallest place. |
 | D7 | `best_next_document` ranks by schemes made **fully ready to apply**, tie-break by schemes **moved forward**. Returns both counts. |
 | D8 | Optional `name_te` (Telugu name) column in `lookups.csv`, `schemes.csv`, `documents.csv`. Empty allowed. |
-| D9 | `(Session)-[:WAS_NOT_ELIGIBLE {failed_checks}]->(Scheme)` stores near misses so memory can say what blocked the citizen last time. |
+| D9 | `(Session)-[:WAS_NOT_ELIGIBLE {bucket, failed_checks}]->(Scheme)` stores `near_miss` and `needs_info` results so memory can say what blocked the citizen last time. `not_eligible` is never stored. |
 | D10 | All Cypher, including Session and MemoryFact writes, lives in `graph/queries.py`. `agent/` only calls those functions. |
-| D11 | Synthetic citizens live in `fixtures/`. `data/` holds only human-verified scheme data. AI tools may generate fake citizens in `fixtures/`, never touch `data/` (in AGENTS.md). |
+| D11 | Synthetic citizens live in `fixtures/` (AI-generated allowed). `data/` holds scheme data from cited sources; AI may draft it, a human reviews it before commit (in AGENTS.md). |
+| D12 | Marriage schemes require status `bride_to_be` ("Unmarried woman whose marriage is planned") via `for_status`, so the unmarried-bride rule is a criterion, not just a note. |
+| D13 | Every non-eligible result falls in one of three buckets: `needs_info`, `near_miss`, `not_eligible` (rule 9 in 1.4). Exclusions are never near misses. |
 
 ---
 
@@ -102,7 +104,7 @@ Units:
 | `(Citizen)-[:HAS]->(Document)` | Documents already held |
 | `(Citizen)-[:HAD_SESSION]->(Session)` | Conversation history |
 | `(Session)-[:WAS_ELIGIBLE {checked_at}]->(Scheme)` | Schemes the citizen qualified for in that session |
-| `(Session)-[:WAS_NOT_ELIGIBLE {checked_at, failed_checks}]->(Scheme)` | Near misses in that session; `failed_checks` is a JSON string (FalkorDB properties can't hold maps) |
+| `(Session)-[:WAS_NOT_ELIGIBLE {checked_at, bucket, failed_checks}]->(Scheme)` | `near_miss` and `needs_info` results in that session; `failed_checks` is a JSON string (FalkorDB properties can't hold maps) |
 | `(Citizen)-[:REMEMBERS]->(MemoryFact)` | Long-term memory |
 | `(MemoryFact)-[:LEARNED_IN]->(Session)` | Session(s) in which the fact was given or changed |
 
@@ -129,9 +131,19 @@ citizen has **any** of its `SATISFIED_BY` documents.
    "income-tax payer" may just mean "not asked yet".
    `explain_not_eligible` returns `exclusions_to_confirm`.
 8. **Eligible ≠ ready to apply.** Documents are a separate step.
-9. **Near miss** = a scheme with exactly **one** failed check, or any scheme
-   the citizen explicitly asked about and failed. Only these are stored as
-   `WAS_NOT_ELIGIBLE`, so memory stays short and useful.
+9. **Three result buckets** for a scheme the citizen does not qualify for:
+
+   | Bucket | When | Agent reports | Stored as `WAS_NOT_ELIGIBLE`? |
+   |---|---|---|---|
+   | `needs_info` | Every failed check is unknown: a numeric check with `actual = null`, or `ask_individual_income` | `ask_for`: the facts to ask (`age`, `annual_income`, `land_acres`, `individual_income`) | Yes |
+   | `near_miss` | Not excluded, every categorical check passes (occupation, gender, category, state, status), and exactly **one** numeric check (age, income, land) fails with a known value | `gap`: how far off (e.g. 20000 INR over, 18 years over) | Yes |
+   | `not_eligible` | Everything else, including any exclusion | Nothing unprompted | No |
+
+   "Unknown" applies to numeric fields only. A categorical check with
+   nothing on record (e.g. no occupation given) counts as not matching,
+   otherwise every scheme would be `needs_info` for a new citizen.
+   Exclusions are never near misses, but `explain_not_eligible` still
+   names the excluding status when asked about a specific scheme.
 
 ### 1.5 Design choices and why
 
@@ -146,7 +158,8 @@ citizen has **any** of its `SATISFIED_BY` documents.
 | `income_basis` property | Makes "individual income" machine-readable, not a comment |
 | Profile snapshot on Session | Eligibility changes when age/income change; the snapshot explains why an old answer differed |
 | `MemoryFact.key` + deterministic `fact_id` | Updating "land_acres" overwrites the old value instead of piling up duplicates |
-| `WAS_NOT_ELIGIBLE` with `failed_checks` | "Last time you were blocked only by the income certificate" comes from the graph, not the LLM |
+| `WAS_NOT_ELIGIBLE` with `bucket` + `failed_checks` | "Last time you were ₹20,000 over the limit" or "we still need your age" comes from the graph, not the LLM |
+| Three buckets, only two stored | Memory keeps actionable results (ask a fact, close a small gap) and drops noise like "not a farmer" |
 | Writes in `graph/queries.py` | One file holds every query that touches the graph; judges can audit it in one place |
 
 ---
@@ -273,6 +286,8 @@ WITH c, owned + groups_done AS done
 
 ```cypher
 // EXPLAIN_BODY  (expects bound c, s; yields failed_checks, excluded_by, exclusions_to_confirm)
+// Each failed check is a map: check, kind ('numeric' | 'categorical' | 'excluded'),
+// field (numeric only), required, actual, gap (numeric with a known value only).
 WITH c, s,
      [(s)-[:FOR_OCCUPATION]->(x) | x.id] AS need_occ,
      [(c)-[:WORKS_AS]->(x)       | x.id] AS has_occ,
@@ -291,30 +306,59 @@ WITH c, s, excluded_by,
      [x IN excl_status WHERE NOT x.id IN has_status] AS exclusions_to_confirm,
      [r IN [
   CASE WHEN s.min_age IS NOT NULL AND (c.age IS NULL OR c.age < s.min_age)
-       THEN {check: 'min_age', required: s.min_age, actual: c.age} END,
+       THEN {check: 'min_age', kind: 'numeric', field: 'age',
+             required: s.min_age, actual: c.age, gap: s.min_age - c.age} END,
   CASE WHEN s.max_age IS NOT NULL AND (c.age IS NULL OR c.age > s.max_age)
-       THEN {check: 'max_age', required: s.max_age, actual: c.age} END,
+       THEN {check: 'max_age', kind: 'numeric', field: 'age',
+             required: s.max_age, actual: c.age, gap: c.age - s.max_age} END,
   CASE WHEN s.max_income IS NOT NULL AND (c.annual_income IS NULL OR c.annual_income > s.max_income)
-       THEN {check: CASE WHEN s.income_basis = 'individual' AND c.annual_income IS NOT NULL
-                         THEN 'ask_individual_income' ELSE 'max_income' END,
-             required: s.max_income, actual: c.annual_income,
-             basis: coalesce(s.income_basis, 'household')} END,
+       THEN CASE WHEN s.income_basis = 'individual' AND c.annual_income IS NOT NULL
+            THEN {check: 'ask_individual_income', kind: 'numeric', field: 'individual_income',
+                  required: s.max_income, actual: c.annual_income, basis: 'individual'}
+            ELSE {check: 'max_income', kind: 'numeric', field: 'annual_income',
+                  required: s.max_income, actual: c.annual_income,
+                  gap: c.annual_income - s.max_income,
+                  basis: coalesce(s.income_basis, 'household')} END END,
   CASE WHEN s.max_land_acres IS NOT NULL AND (c.land_acres IS NULL OR c.land_acres > s.max_land_acres)
-       THEN {check: 'max_land_acres', required: s.max_land_acres, actual: c.land_acres} END,
+       THEN {check: 'max_land_acres', kind: 'numeric', field: 'land_acres',
+             required: s.max_land_acres, actual: c.land_acres,
+             gap: c.land_acres - s.max_land_acres} END,
   CASE WHEN size(need_occ) > 0 AND none(x IN has_occ WHERE x IN need_occ)
-       THEN {check: 'occupation', required: need_occ, actual: has_occ} END,
+       THEN {check: 'occupation', kind: 'categorical', required: need_occ, actual: has_occ} END,
   CASE WHEN size(need_cat) > 0 AND none(x IN has_cat WHERE x IN need_cat)
-       THEN {check: 'category', required: need_cat, actual: has_cat} END,
+       THEN {check: 'category', kind: 'categorical', required: need_cat, actual: has_cat} END,
   CASE WHEN size(need_gen) > 0 AND none(x IN has_gen WHERE x IN need_gen)
-       THEN {check: 'gender', required: need_gen, actual: has_gen} END,
+       THEN {check: 'gender', kind: 'categorical', required: need_gen, actual: has_gen} END,
   CASE WHEN size(need_status) > 0 AND none(x IN has_status WHERE x IN need_status)
-       THEN {check: 'status', required: need_status, actual: has_status} END,
+       THEN {check: 'status', kind: 'categorical', required: need_status, actual: has_status} END,
   CASE WHEN size(need_state) > 0 AND none(x IN has_state WHERE x IN need_state)
-       THEN {check: 'state', required: need_state, actual: has_state} END,
+       THEN {check: 'state', kind: 'categorical', required: need_state, actual: has_state} END,
   CASE WHEN size(excluded_by) > 0
-       THEN {check: 'excluded', required: [], actual: excluded_by} END
+       THEN {check: 'excluded', kind: 'excluded', required: [], actual: excluded_by} END
 ] WHERE r IS NOT NULL] AS failed_checks
 ```
+
+```cypher
+// BUCKET  (expects EXPLAIN_BODY output; yields bucket, ask_for, gap_check)
+// An unknown check = numeric with actual null, or ask_individual_income.
+WITH c, s, failed_checks, excluded_by, exclusions_to_confirm,
+     [f IN failed_checks WHERE f.actual IS NULL OR f.check = 'ask_individual_income'] AS unknown_checks,
+     [f IN failed_checks WHERE f.actual IS NOT NULL AND f.check <> 'ask_individual_income'] AS known_checks
+WITH c, s, failed_checks, excluded_by, exclusions_to_confirm, unknown_checks, known_checks,
+     CASE
+       WHEN size(failed_checks) = 0 THEN 'eligible'
+       WHEN size(known_checks) = 0 THEN 'needs_info'
+       WHEN size(known_checks) = 1 AND size(unknown_checks) = 0
+            AND known_checks[0].kind = 'numeric' THEN 'near_miss'
+       ELSE 'not_eligible'
+     END AS bucket
+WITH c, s, failed_checks, excluded_by, exclusions_to_confirm, bucket,
+     [f IN unknown_checks | f.field] AS ask_for,
+     CASE WHEN bucket = 'near_miss' THEN known_checks[0] END AS gap_check
+```
+
+`ask_for` can repeat a field (unknown age fails both `min_age` and
+`max_age`); Python de-duplicates it before the agent asks.
 
 ### 3.2 Read queries
 
@@ -329,27 +373,34 @@ RETURN s.scheme_id AS scheme_id, s.name AS name, s.name_te AS name_te,
 ORDER BY s.benefit_amount_inr DESC, s.name
 ```
 
-**explain_not_eligible** – one scheme; empty `failed_checks` = eligible.
+**explain_not_eligible** – one scheme, any bucket. Always returns the full
+`failed_checks` and `excluded_by`, so an exclusion is named when asked.
 
 ```cypher
 MATCH (c:Citizen {citizen_id: $citizen_id}), (s:Scheme {scheme_id: $scheme_id})
 <EXPLAIN_BODY>
+<BUCKET>
 RETURN s.scheme_id AS scheme_id, s.name AS name, s.source_url AS source_url,
-       failed_checks, excluded_by, exclusions_to_confirm
+       bucket, failed_checks, excluded_by, exclusions_to_confirm,
+       ask_for, gap_check
 ```
 
 Example the agent can say straight from the result: *"Not eligible for
 PM-KISAN because it excludes the status **Income-tax payer**."*
 
-**find_near_misses** – all schemes failing exactly one check.
+**find_almost_eligible** – every scheme in the `needs_info` or `near_miss`
+bucket for this citizen.
 
 ```cypher
 MATCH (c:Citizen {citizen_id: $citizen_id})
 MATCH (s:Scheme)
 <EXPLAIN_BODY>
-WITH s, failed_checks WHERE size(failed_checks) = 1
+<BUCKET>
+WITH s, bucket, failed_checks, ask_for, gap_check
+WHERE bucket IN ['needs_info', 'near_miss']
 RETURN s.scheme_id AS scheme_id, s.name AS name, s.source_url AS source_url,
-       failed_checks
+       bucket, failed_checks, ask_for, gap_check
+ORDER BY bucket, s.name
 ```
 
 **document_path** – full paperwork chain for one scheme, deepest first. A
@@ -452,16 +503,19 @@ SET r.checked_at = timestamp()
 RETURN count(s) AS recorded
 ```
 
-**record_near_misses** – Python runs `find_near_misses` (plus
+**record_not_eligible** – Python runs `find_almost_eligible` (plus
 `explain_not_eligible` for schemes the citizen asked about), turns each
-`failed_checks` into a JSON string, and passes the rows:
+`failed_checks` into a JSON string, and passes the rows. The `WHERE`
+guarantees `not_eligible` is never stored, whatever the caller passes.
 
 ```cypher
 MATCH (se:Session {session_id: $session_id})
-UNWIND $rows AS row        // row = {scheme_id, failed_checks_json}
+UNWIND $rows AS row        // row = {scheme_id, bucket, failed_checks_json}
+WITH se, row WHERE row.bucket IN ['needs_info', 'near_miss']
 MATCH (s:Scheme {scheme_id: row.scheme_id})
 MERGE (se)-[r:WAS_NOT_ELIGIBLE]->(s)
-SET r.checked_at = timestamp(), r.failed_checks = row.failed_checks_json
+SET r.checked_at = timestamp(), r.bucket = row.bucket,
+    r.failed_checks = row.failed_checks_json
 ```
 
 **remember_fact** – upsert by key; `fact_id` is `citizen_id:key`.
@@ -485,9 +539,9 @@ OPTIONAL MATCH (c)-[:HAD_SESSION]->(se:Session)
 WITH c, facts, se ORDER BY se.started_at DESC LIMIT 1
 OPTIONAL MATCH (se)-[r:WAS_NOT_ELIGIBLE]->(s:Scheme)
 RETURN facts, se.started_at AS last_session_at,
-       [x IN collect({name: s.name, failed_checks: r.failed_checks,
-                      source_url: s.source_url})
-        WHERE x.name IS NOT NULL] AS last_near_misses
+       [x IN collect({name: s.name, bucket: r.bucket,
+                      failed_checks: r.failed_checks, source_url: s.source_url})
+        WHERE x.name IS NOT NULL] AS last_not_eligible
 ```
 
 ### 3.4 FalkorDB syntax check results
@@ -499,7 +553,8 @@ The queries above already use the fallbacks.
 Works as drafted: `NOT (pattern)` and pattern predicates reusing bound `c` in
 `WHERE`; pattern comprehensions in `WITH` and inside `all(...)`;
 `nodes(p)[1..-1]`; `labels(x)[0]`; map literals inside `CASE`; filtering a
-list of `CASE` maps; variable-length paths over two types (`*1..8`);
+list of `CASE` maps; `CASE` nested inside `CASE` returning a map; reading a
+key from a list item (`known_checks[0].kind`); variable-length paths over two types (`*1..8`);
 `max(length(p))`; `ORDER BY … LIMIT 1` then `OPTIONAL MATCH`; `SET c += $props`;
 `timestamp()`; string concatenation in a `MERGE` key; `UNWIND $rows`;
 `CREATE INDEX`; two-property full-text index; unique constraints.

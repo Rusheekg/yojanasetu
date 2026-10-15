@@ -1,0 +1,7 @@
+citizen_id,display_name,age,annual_income,land_acres,gender_id,state_id
+demo_lakshmi,Lakshmi,58,150000,2,female,telangana
+demo_ravi,Ravi,35,120000,3,male,telangana
+demo_priya,Priya,22,220000,,female,telangana
+demo_suresh,Suresh,45,900000,5,male,telangana
+demo_kamala,Kamala,,,,female,telangana
+demo_fatima,Fatima,20,150000,,female,telangana

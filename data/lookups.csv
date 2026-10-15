@@ -9,6 +9,7 @@ status,income_tax_payer,Income tax payer,,
 status,registered_professional,Registered professional (doctor/engineer/lawyer/CA/architect),,
 status,covered_by_other_pension,"Member of NPS, ESIC, EPFO, PM-SYM or PM-LVM",,
 status,bpl,Below poverty line (BPL) household,,
+status,bride_to_be,Unmarried woman whose marriage is planned,,
 office,aadhaar_centre,Aadhaar Enrolment Centre,,https://uidai.gov.in/
 office,bank_branch,Bank branch,,
 office,tahsildar_office,Tahsildar (Revenue) Office,,
