@@ -242,6 +242,18 @@ citizen_id,link,value
 - The same numeric criterion twice for one scheme.
 - Cycles in `needs_doc`.
 - Fixtures loader: any id in `fixtures/` that doesn't exist in `data/`.
+- Duplicate ids within a file (scheme_id, doc_id, lookup type+id, citizen_id),
+  and duplicate link rows.
+- A `doc_id` that is also a `scheme_id`.
+- Empty required columns (ids, names, `level`, `benefit`, `source_url`).
+- `level` not `central`/`state`; `income_basis` not `household`/`individual`;
+  `benefit_amount_inr` not a whole number (empty is allowed, e.g. free bus travel).
+- `issued_by` not from a document to an office.
+- Fixtures: `has_doc` pointing at a group (only documents can be held);
+  `age`, `annual_income`, `land_acres` not numbers (empty = unknown is allowed).
+
+Implemented in `graph/validate.py`. `graph/load.py` runs all of these and
+changes nothing unless every one passes.
 
 ---
 
@@ -571,7 +583,7 @@ Rules for writing `graph/queries.py`:
 1. No pattern predicates inside a pattern comprehension's `WHERE`.
 2. Aggregate in one `WITH`; do arithmetic or `+` on the result in the next.
 3. Variable-length paths always use a range, never a fixed length.
-4. Re-run `python graph/syntax_check.py` after any FalkorDB upgrade.
+4. Re-run `.venv\Scripts\python -m graph.syntax_check` after any FalkorDB upgrade.
 
 ---
 

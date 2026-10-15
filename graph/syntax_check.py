@@ -1,19 +1,18 @@
-"""Check that our FalkorDB instance supports every Cypher feature graph/queries.py relies on.
+r"""Check that our FalkorDB instance supports every Cypher feature graph/queries.py relies on.
 
 WHY: docs/graph_model.md (section 3.4) drafts the eligibility, document and
 memory queries using features we have not tested on FalkorDB yet. Running one
 tiny query per feature on a throwaway graph tells us, before we write the real
 queries, which ones work and which need the documented fallback.
 
-Run:  python graph/syntax_check.py
+Run from the repo root:  .venv\Scripts\python -m graph.syntax_check
 Only touches a scratch graph named `syntax_check`, which it deletes at the end.
 All data here is made up and has nothing to do with real schemes.
 """
 
-import os
 import sys
 
-from falkordb import FalkorDB
+from graph.db import connect
 
 GRAPH_NAME = "syntax_check"
 
@@ -228,23 +227,6 @@ CHECKS = [
         None,
     ),
 ]
-
-
-def connect():
-    """Build a client from environment variables only.
-
-    WHY: AGENTS.md forbids hardcoded hosts or passwords; failing early with a
-    clear message is friendlier than a socket error later.
-    """
-    missing = [v for v in ("FALKORDB_HOST", "FALKORDB_PORT") if not os.environ.get(v)]
-    if missing:
-        sys.exit("Missing environment variables: " + ", ".join(missing))
-    return FalkorDB(
-        host=os.environ["FALKORDB_HOST"],
-        port=int(os.environ["FALKORDB_PORT"]),
-        username=os.environ.get("FALKORDB_USERNAME") or None,
-        password=os.environ.get("FALKORDB_PASSWORD") or None,
-    )
 
 
 def run_check(graph, cypher, params, expect):
