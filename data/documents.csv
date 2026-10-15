@@ -5,3 +5,7 @@ pattadar_passbook,document,Pattadar Passbook,,Telangana land ownership record (B
 rofr_patta,document,Forest Rights (RoFR) patta,,Land title under the Forest Rights Act
 land_proof,group,Land ownership proof (any one),,Pattadar Passbook or RoFR patta
 ration_card,document,BPL ration card (Food Security Card),,Proof of below-poverty-line household
+income_certificate,document,Income certificate,,Annual family income proof
+caste_certificate,document,Caste or community certificate,,"SC, ST, BC, EBC or minority proof"
+husband_death_certificate,document,Husband's death certificate,,Proof of widowhood
+marriage_proof,document,Marriage proof,,"Marriage certificate, wedding card or wedding photo"

@@ -24,3 +24,27 @@ rythu_bima,min_age,18,
 rythu_bima,max_age,59,
 ignoaps,min_age,60,
 ignoaps,for_status,bpl,"All people aged 60+ in a BPL household are eligible, not just one per family"
+pmuy,for_gender,female,Adult woman of the household applies
+pmuy,min_age,18,
+pmuy,for_status,bpl,"Poor households: SC/ST, PMAY-G, AAY, Most Backward Classes, forest dwellers, tea garden tribes, SECC; other poor households can apply with a 14-point self-declaration"
+pmuy,excludes_status,lpg_connection_holder,The household must not already have an LPG connection
+ignwps,for_gender,female,
+ignwps,for_category,widow,Widow (category used for marital status)
+ignwps,min_age,40,
+ignwps,max_age,79,At 80+ the person moves to the old age pension (IGNOAPS)
+ignwps,for_status,bpl,
+kalyana_lakshmi,for_gender,female,Unmarried bride; marriage on or after 02-10-2014; once in a lifetime
+kalyana_lakshmi,available_in,telangana,
+kalyana_lakshmi,min_age,18,Bride's age at marriage
+kalyana_lakshmi,max_income,200000,Parents' combined annual income
+kalyana_lakshmi,for_category,sc,
+kalyana_lakshmi,for_category,st,
+kalyana_lakshmi,for_category,bc,
+kalyana_lakshmi,for_category,ebc,
+shaadi_mubarak,for_gender,female,Unmarried bride; marriage on or after 02-10-2014; once in a lifetime
+shaadi_mubarak,available_in,telangana,
+shaadi_mubarak,min_age,18,Bride's age at marriage
+shaadi_mubarak,max_income,200000,Parents' combined annual income
+shaadi_mubarak,for_category,minority,
+mahalakshmi,for_gender,female,Women and girls in TGSRTC buses (ordinary and express services)
+mahalakshmi,available_in,telangana,

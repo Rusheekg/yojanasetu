@@ -8,3 +8,5 @@ reviewed, tested and understand all code.
 - Claude drafted scheme rows for 5 schemes (PM-KISAN, PM-KMY, Rythu Bharosa, Rythu Bima,
   IGNOAPS) from official sources (pmkisan.gov.in, myscheme.gov.in, telangana.gov.in district
   site, operational guidelines); Rusheek reviewed them.
+- Claude drafted 5 more schemes (PMUY, IGNWPS, Kalyana Lakshmi, Shaadi Mubarak, Mahalakshmi) from
+  official sources (pmuy.gov.in, nsap.nic.in, Telangana ePASS, News On AIR); Rusheek reviewed them.
