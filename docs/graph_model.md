@@ -267,7 +267,8 @@ AND NOT (s)-[:EXCLUDES]->()<-[:WORKS_AS|BELONGS_TO|HAS_STATUS]-(c)
 OPTIONAL MATCH (c)-[:HAS]->(h:Document)
 WITH c, collect(h.doc_id) AS owned
 OPTIONAL MATCH (g:DocumentGroup)-[:SATISFIED_BY]->(:Document)<-[:HAS]-(c)
-WITH c, owned + collect(DISTINCT g.doc_id) AS done
+WITH c, owned, collect(DISTINCT g.doc_id) AS groups_done
+WITH c, owned + groups_done AS done
 ```
 
 ```cypher
@@ -285,9 +286,10 @@ WITH c, s,
      [(c)-[:LIVES_IN]->(x)       | x.id] AS has_state,
      [(s)-[:EXCLUDES]->(x)<-[:WORKS_AS|BELONGS_TO|HAS_STATUS]-(c)
         | {type: labels(x)[0], id: x.id, name: x.name}] AS excluded_by,
-     [(s)-[:EXCLUDES]->(x:Status) WHERE NOT (c)-[:HAS_STATUS]->(x)
-        | {id: x.id, name: x.name}] AS exclusions_to_confirm
-WITH c, s, excluded_by, exclusions_to_confirm, [r IN [
+     [(s)-[:EXCLUDES]->(x:Status) | {id: x.id, name: x.name}] AS excl_status
+WITH c, s, excluded_by,
+     [x IN excl_status WHERE NOT x.id IN has_status] AS exclusions_to_confirm,
+     [r IN [
   CASE WHEN s.min_age IS NOT NULL AND (c.age IS NULL OR c.age < s.min_age)
        THEN {check: 'min_age', required: s.min_age, actual: c.age} END,
   CASE WHEN s.max_age IS NOT NULL AND (c.age IS NULL OR c.age > s.max_age)
@@ -488,16 +490,32 @@ RETURN facts, se.started_at AS last_session_at,
         WHERE x.name IS NOT NULL] AS last_near_misses
 ```
 
-### 3.4 Verify on our FalkorDB instance before coding
+### 3.4 FalkorDB syntax check results
 
-- Pattern predicates in `WHERE` that reuse bound `c`.
-- Pattern comprehensions with a `WHERE` clause, inside `WITH` and `all(...)`.
-- `nodes(p)[1..-1]`, `labels(x)[0]`, map literals inside `CASE`.
-- Variable-length paths over two types (`NEEDS_DOC|SATISFIED_BY*`).
-- `SET c += $props`, `timestamp()`, and string concatenation inside a MERGE key.
+Checked with `graph/syntax_check.py` on our FalkorDB instance (2026-10-15,
+falkordb-py 1.2.2). The queries above already use the fallbacks.
 
-If any is unsupported, fall back to `OPTIONAL MATCH` + `collect` per check,
-or build the value in Python and pass it as a parameter.
+Works as drafted: `NOT (pattern)` and pattern predicates reusing bound `c` in
+`WHERE`; pattern comprehensions in `WITH` and inside `all(...)`;
+`nodes(p)[1..-1]`; `labels(x)[0]`; map literals inside `CASE`; filtering a
+list of `CASE` maps; variable-length paths over two types (`*1..8`);
+`max(length(p))`; `ORDER BY … LIMIT 1` then `OPTIONAL MATCH`; `SET c += $props`;
+`timestamp()`; string concatenation in a `MERGE` key; `UNWIND $rows`;
+`CREATE INDEX`; two-property full-text index; unique constraints.
+
+Failed, with the fallback we use:
+
+| Feature | What happened | Fallback |
+|---|---|---|
+| Pattern comprehension whose `WHERE` contains a pattern, e.g. `[(s)-[:EXCLUDES]->(x) WHERE NOT (c)-[:HAS_STATUS]->(x) \| x.id]` | Error: `Type mismatch: expected Null but was Pointer`. A `WHERE` on properties (`x.id <> 'a'`) works. | Collect both sides as id lists first, then filter with a list comprehension: `[x IN excl_status WHERE NOT x.id IN has_status]` (see `EXPLAIN_BODY`). |
+| Mixing an aggregate with another expression in one projection: `WITH c, owned + collect(...) AS done` | Error: `Unable to locate a value with alias owned`. | Aggregate in one `WITH`, combine in the next: `WITH c, owned, collect(...) AS groups_done WITH c, owned + groups_done AS done` (see `DONE_DOCS`). |
+| Exact-length variable path `*3` or `*3..3` with both ends filtered | No error, but **no rows** even though the path exists. `*1..8` finds it. | Never use exact-length hops. Use a range (`*1..8`) and, if needed, `WHERE length(p) = n`. |
+
+Rules for writing `graph/queries.py`:
+1. No pattern predicates inside a pattern comprehension's `WHERE`.
+2. Aggregate in one `WITH`; do arithmetic or `+` on the result in the next.
+3. Variable-length paths always use a range, never a fixed length.
+4. Re-run `python graph/syntax_check.py` after any FalkorDB upgrade.
 
 ---
 
