@@ -493,7 +493,8 @@ RETURN facts, se.started_at AS last_session_at,
 ### 3.4 FalkorDB syntax check results
 
 Checked with `graph/syntax_check.py` on our FalkorDB instance (2026-10-15,
-falkordb-py 1.2.2). The queries above already use the fallbacks.
+Python 3.13.2 in `.venv`, falkordb-py 1.8.0; also passed earlier on 1.2.2).
+The queries above already use the fallbacks.
 
 Works as drafted: `NOT (pattern)` and pattern predicates reusing bound `c` in
 `WHERE`; pattern comprehensions in `WITH` and inside `all(...)`;

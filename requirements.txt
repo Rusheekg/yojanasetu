@@ -1,0 +1,3 @@
+# Python packages YojanaSetu needs so far. Install into the project venv:
+#   .venv\Scripts\python -m pip install -r requirements.txt
+falkordb==1.8.0

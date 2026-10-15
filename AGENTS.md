@@ -35,4 +35,6 @@ Shailu can request specific demo citizens for fixtures/.
 Don't edit the other person's folders; suggest changes instead.
 
 ## Stack
-Python 3.11+, FastAPI, falkordb, litellm, React + Vite + Tailwind, react-force-graph.
+Python 3.13 in .venv (run everything with .venv\Scripts\python; packages in
+requirements.txt), FastAPI, falkordb, litellm, React + Vite + Tailwind,
+react-force-graph.
